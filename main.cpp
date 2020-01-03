@@ -66,6 +66,8 @@ String tzone =  "your_tado_zone"
 String tdevice = "your_tado_device";
 String room =  "your_room_name"; // Display purposes only
 float DHTadjust = -0.0;                        // Error correction for adjustment of DHT 22 - this value is added to sensor reading
+const float mindiff = -0.5;                    // Difference below which offset will be adjusted
+const float maxdiff = 0.5;                     // Difference above which offset will be adjusted
 
 // End of credential / user setup block
 //##################################################################################################################
@@ -527,7 +529,7 @@ void loop()
   sprintf(toffsetS, "%.2f", toffset);
   Serial.print("Offset to submit: ");
   Serial.println(toffsetS);
-  if ((toffset - txoffset) > 0.5 || (toffset - txoffset) < -0.5)
+  if ((toffset - txoffset) > maxdiff || (toffset - txoffset) < mindiff)
   {
     Serial.println("Offset out of range - update");
     poffset = 1;
