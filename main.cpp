@@ -12,7 +12,7 @@ https://github.com/esp8266/Arduino/tree/master/libraries
 
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
-#include <ArduinoJson.h>        // https://arduinojson.org/
+#include <ArduinoJson.h> // https://arduinojson.org/
 
 // REQUIRES the following Arduino libraries:
 // - DHT Sensor Library: https://github.com/adafruit/DHT-sensor-library
@@ -28,25 +28,26 @@ https://github.com/esp8266/Arduino/tree/master/libraries
 #endif
 
 #ifndef TFT_SLPIN
-#define TFT_SLPIN   0x10
+#define TFT_SLPIN 0x10
 #endif
 
-#define TFT_MOSI            19
-#define TFT_SCLK            18
-#define TFT_CS              5
-#define TFT_DC              16
-#define TFT_RST             23
+#define TFT_MOSI 19
+#define TFT_SCLK 18
+#define TFT_CS 5
+#define TFT_DC 16
+#define TFT_RST 23
 
-#define TFT_BL          4  // Display backlight control pin
-#define ADC_EN          14
-#define ADC_PIN         34
-#define BUTTON_1        35
-#define BUTTON_2        0
+#define TFT_BL 4 // Display backlight control pin
+#define ADC_EN 14
+#define ADC_PIN 34
+#define BUTTON_1 35
+#define BUTTON_2 0
 
-#define DHTPIN 22     // Digital pin connected to the DHT sensor 
-#define DHTTYPE    DHT22     // Sensor Type DHT 22 (AM2302)
+#define DHTPIN 22     // Digital pin connected to the DHT sensor
+#define DHTTYPE DHT22 // Sensor Type DHT 22 (AM2302)
 
 TFT_eSPI tft = TFT_eSPI(135, 240); // Invoke custom library
+
 
 DHT_Unified dht(DHTPIN, DHTTYPE);
 
@@ -54,27 +55,27 @@ DHT_Unified dht(DHTPIN, DHTTYPE);
 /* Set these to your desired credentials. */
 
 // WiFi
-const char *ssid =  "your-ssid";
-const char *password =  "your_password";
+const char *ssid = "your-ssid";
+const char *password = "your_password";
 
 // Tado
 const char *tlogin =  "your_tado_login";
-const char *tpassword =  "your_tado_password";
+const char *tpassword = "your_tado_password";
 String thome =  "your_home_id";
 String tzone =  "your_tado_zone"
 String tdevice = "your_tado_device";
 String room =  "your_room_name"; // Display purposes only
-float DHTadjust = -0.0; // Error correction for adjustment of DHT 22 - this value is added to sensor reading
+float DHTadjust = -0.0;                        // Error correction for adjustment of DHT 22 - this value is added to sensor reading
 
 // End of credential / user setup block
 //##################################################################################################################
 
-float actTemp = 20; // Actual temperature of the room from DHT22 Sensor
-float txoffset =0; //  Existing offset value returned by Tado
-float toffset = 0;  // Offset value to send to Tado
-float tsensor =0;  // True Tado sensor reading before offset
+float actTemp = 20;        // Actual temperature of the room from DHT22 Sensor
+float txoffset = 0;        //  Existing offset value returned by Tado
+float toffset = 0;         // Offset value to send to Tado
+float tsensor = 0;         // True Tado sensor reading before offset
 char toffsetS[] = "T0000"; // Converted value to actually submit to Tado
-
+bool poffset = 1;          // Whether to push offset
 
 //Web/Server address to read/write from
 
@@ -82,39 +83,36 @@ const char *host = "auth.tado.com";
 const char *host2 = "my.tado.com";
 const int httpsPort = 443;
 
-
 // Set root CA
-const char* root_ca= \
-"-----BEGIN CERTIFICATE-----\n" \
-"MIIEDzCCAvegAwIBAgIBADANBgkqhkiG9w0BAQUFADBoMQswCQYDVQQGEwJVUzEl\n" \
-"MCMGA1UEChMcU3RhcmZpZWxkIFRlY2hub2xvZ2llcywgSW5jLjEyMDAGA1UECxMp\n" \
-"U3RhcmZpZWxkIENsYXNzIDIgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwHhcNMDQw\n" \
-"NjI5MTczOTE2WhcNMzQwNjI5MTczOTE2WjBoMQswCQYDVQQGEwJVUzElMCMGA1UE\n" \
-"ChMcU3RhcmZpZWxkIFRlY2hub2xvZ2llcywgSW5jLjEyMDAGA1UECxMpU3RhcmZp\n" \
-"ZWxkIENsYXNzIDIgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwggEgMA0GCSqGSIb3\n" \
-"DQEBAQUAA4IBDQAwggEIAoIBAQC3Msj+6XGmBIWtDBFk385N78gDGIc/oav7PKaf\n" \
-"8MOh2tTYbitTkPskpD6E8J7oX+zlJ0T1KKY/e97gKvDIr1MvnsoFAZMej2YcOadN\n" \
-"+lq2cwQlZut3f+dZxkqZJRRU6ybH838Z1TBwj6+wRir/resp7defqgSHo9T5iaU0\n" \
-"X9tDkYI22WY8sbi5gv2cOj4QyDvvBmVmepsZGD3/cVE8MC5fvj13c7JdBmzDI1aa\n" \
-"K4UmkhynArPkPw2vCHmCuDY96pzTNbO8acr1zJ3o/WSNF4Azbl5KXZnJHoe0nRrA\n" \
-"1W4TNSNe35tfPe/W93bC6j67eA0cQmdrBNj41tpvi/JEoAGrAgEDo4HFMIHCMB0G\n" \
-"A1UdDgQWBBS/X7fRzt0fhvRbVazc1xDCDqmI5zCBkgYDVR0jBIGKMIGHgBS/X7fR\n" \
-"zt0fhvRbVazc1xDCDqmI56FspGowaDELMAkGA1UEBhMCVVMxJTAjBgNVBAoTHFN0\n" \
-"YXJmaWVsZCBUZWNobm9sb2dpZXMsIEluYy4xMjAwBgNVBAsTKVN0YXJmaWVsZCBD\n" \
-"bGFzcyAyIENlcnRpZmljYXRpb24gQXV0aG9yaXR5ggEAMAwGA1UdEwQFMAMBAf8w\n" \
-"DQYJKoZIhvcNAQEFBQADggEBAAWdP4id0ckaVaGsafPzWdqbAYcaT1epoXkJKtv3\n" \
-"L7IezMdeatiDh6GX70k1PncGQVhiv45YuApnP+yz3SFmH8lU+nLMPUxA2IGvd56D\n" \
-"eruix/U0F47ZEUD0/CwqTRV/p2JdLiXTAAsgGh1o+Re49L2L7ShZ3U0WixeDyLJl\n" \
-"xy16paq8U4Zt3VekyvggQQto8PT7dL5WXXp59fkdheMtlb71cZBDzI0fmgAKhynp\n" \
-"VSJYACPq4xJDKVtHCN2MQWplBqjlIapBtJUhlbl90TSrE9atvNziPTnNvT51cKEY\n" \
-"WQPJIrSPnNVeKtelttQKbfi3QBFGmh95DmK/D5fs4C8fF5Q=\n" \
-"-----END CERTIFICATE-----\n";
-
+const char *root_ca =
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIIEDzCCAvegAwIBAgIBADANBgkqhkiG9w0BAQUFADBoMQswCQYDVQQGEwJVUzEl\n"
+    "MCMGA1UEChMcU3RhcmZpZWxkIFRlY2hub2xvZ2llcywgSW5jLjEyMDAGA1UECxMp\n"
+    "U3RhcmZpZWxkIENsYXNzIDIgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwHhcNMDQw\n"
+    "NjI5MTczOTE2WhcNMzQwNjI5MTczOTE2WjBoMQswCQYDVQQGEwJVUzElMCMGA1UE\n"
+    "ChMcU3RhcmZpZWxkIFRlY2hub2xvZ2llcywgSW5jLjEyMDAGA1UECxMpU3RhcmZp\n"
+    "ZWxkIENsYXNzIDIgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwggEgMA0GCSqGSIb3\n"
+    "DQEBAQUAA4IBDQAwggEIAoIBAQC3Msj+6XGmBIWtDBFk385N78gDGIc/oav7PKaf\n"
+    "8MOh2tTYbitTkPskpD6E8J7oX+zlJ0T1KKY/e97gKvDIr1MvnsoFAZMej2YcOadN\n"
+    "+lq2cwQlZut3f+dZxkqZJRRU6ybH838Z1TBwj6+wRir/resp7defqgSHo9T5iaU0\n"
+    "X9tDkYI22WY8sbi5gv2cOj4QyDvvBmVmepsZGD3/cVE8MC5fvj13c7JdBmzDI1aa\n"
+    "K4UmkhynArPkPw2vCHmCuDY96pzTNbO8acr1zJ3o/WSNF4Azbl5KXZnJHoe0nRrA\n"
+    "1W4TNSNe35tfPe/W93bC6j67eA0cQmdrBNj41tpvi/JEoAGrAgEDo4HFMIHCMB0G\n"
+    "A1UdDgQWBBS/X7fRzt0fhvRbVazc1xDCDqmI5zCBkgYDVR0jBIGKMIGHgBS/X7fR\n"
+    "zt0fhvRbVazc1xDCDqmI56FspGowaDELMAkGA1UEBhMCVVMxJTAjBgNVBAoTHFN0\n"
+    "YXJmaWVsZCBUZWNobm9sb2dpZXMsIEluYy4xMjAwBgNVBAsTKVN0YXJmaWVsZCBD\n"
+    "bGFzcyAyIENlcnRpZmljYXRpb24gQXV0aG9yaXR5ggEAMAwGA1UdEwQFMAMBAf8w\n"
+    "DQYJKoZIhvcNAQEFBQADggEBAAWdP4id0ckaVaGsafPzWdqbAYcaT1epoXkJKtv3\n"
+    "L7IezMdeatiDh6GX70k1PncGQVhiv45YuApnP+yz3SFmH8lU+nLMPUxA2IGvd56D\n"
+    "eruix/U0F47ZEUD0/CwqTRV/p2JdLiXTAAsgGh1o+Re49L2L7ShZ3U0WixeDyLJl\n"
+    "xy16paq8U4Zt3VekyvggQQto8PT7dL5WXXp59fkdheMtlb71cZBDzI0fmgAKhynp\n"
+    "VSJYACPq4xJDKVtHCN2MQWplBqjlIapBtJUhlbl90TSrE9atvNziPTnNvT51cKEY\n"
+    "WQPJIrSPnNVeKtelttQKbfi3QBFGmh95DmK/D5fs4C8fF5Q=\n"
+    "-----END CERTIFICATE-----\n";
 
 //=======================================================================
 //                    Power on setup
 //=======================================================================
-
 
 void setup()
 {
@@ -155,10 +153,11 @@ void setup()
   tft.setTextDatum(MC_DATUM);
   tft.setTextSize(2);
 
-    if (TFT_BL > 0) { // TFT_BL has been set in the TFT_eSPI library in the User Setup file TTGO_T_Display.h
-         pinMode(TFT_BL, OUTPUT); // Set backlight pin to output mode
-         digitalWrite(TFT_BL, TFT_BACKLIGHT_ON); // Turn backlight on. TFT_BACKLIGHT_ON has been set in the TFT_eSPI library in the User Setup file TTGO_T_Display.h
-    }
+  if (TFT_BL > 0)
+  {                                         // TFT_BL has been set in the TFT_eSPI library in the User Setup file TTGO_T_Display.h
+    pinMode(TFT_BL, OUTPUT);                // Set backlight pin to output mode
+    digitalWrite(TFT_BL, TFT_BACKLIGHT_ON); // Turn backlight on. TFT_BACKLIGHT_ON has been set in the TFT_eSPI library in the User Setup file TTGO_T_Display.h
+  }
 }
 
 //=======================================================================
@@ -169,34 +168,36 @@ void loop()
   String Ttoken;                //Declare string to hold Tado authentication token
   WiFiClientSecure httpsClient; //Declare object of class WiFiClient
 
-Serial.println("Start of loop ##################################################################### \r\n");
-Serial.print("Zone ID:");
-Serial.println(tzone);
-Serial.print("Device ID:");
-Serial.println(tdevice);
-//#######################################################################################################################################
-// Read local device temperature, set actTemp
-  
+  Serial.println("Start of loop ##################################################################### \r\n");
+  Serial.print("Zone ID:");
+  Serial.println(tzone);
+  Serial.print("Device ID:");
+  Serial.println(tdevice);
+  //#######################################################################################################################################
+  // Read local device temperature, set actTemp
+
   sensors_event_t event;
- 
-    dht.temperature().getEvent(&event);
-  if (isnan(event.temperature)) {
+
+  dht.temperature().getEvent(&event);
+  if (isnan(event.temperature))
+  {
     Serial.println(F("Error reading temperature!"));
   }
-  else {
+  else
+  {
     // Serial.print(F("Temperature: "));
     // Serial.print(event.temperature);
     // Serial.println(F("°C"));
   }
-actTemp = (event.temperature + DHTadjust);
+  actTemp = (event.temperature + DHTadjust);
 
-    //  Serial.print(F("actTemp: "));
-    // Serial.print(actTemp);
-    // Serial.println(F("°C"));
+  //  Serial.print(F("actTemp: "));
+  // Serial.print(actTemp);
+  // Serial.println(F("°C"));
 
   // //##################################################################################################################################
-  // //Obtain Authentication Token from Tado 
-  
+  // //Obtain Authentication Token from Tado
+
   Serial.println("POST Authentication, receive Token");
   Serial.println(host);
 
@@ -229,10 +230,9 @@ actTemp = (event.temperature + DHTadjust);
   Serial.print("requesting URL: ");
   Serial.println(host);
 
-  String httpBody =  (String("client_id=tado-web-app&grant_type=password&scope=home.user&username=") + 
-                      tlogin + "&password=" + tpassword +
-                      "&client_secret=wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc"
-                     );
+  String httpBody = (String("client_id=tado-web-app&grant_type=password&scope=home.user&username=") +
+                     tlogin + "&password=" + tpassword +
+                     "&client_secret=wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc");
 
   int httpBodyLength = httpBody.length();
   //   Serial.print("httpBodyLength: ");
@@ -247,9 +247,7 @@ actTemp = (event.temperature + DHTadjust);
                      "Content-Length: " + httpBodyLength + "\r\n" +
                      "Connection: keep-alive" + "\r\n" +
                      +"\r\n" +
-                     httpBody
-                     +"Connection: close\r\n\r\n"
-                     );
+                     httpBody + "Connection: close\r\n\r\n");
 
   httpsClient.print(httpText);
 
@@ -271,21 +269,21 @@ actTemp = (event.temperature + DHTadjust);
   String linez;
   String lineT;
 
-    linez = httpsClient.readStringUntil('\n'); //Read Line by Line
-    lineT = httpsClient.readStringUntil('\n'); //Read Line by Line
+  linez = httpsClient.readStringUntil('\n'); //Read Line by Line
+  lineT = httpsClient.readStringUntil('\n'); //Read Line by Line
 
-    Ttoken = lineT.substring(17,916);
-  
-    Serial.println("==========");
-  
- // Serial.println("Token Value:");
- // Serial.println(Ttoken);
+  Ttoken = lineT.substring(17, 916);
+
+  Serial.println("==========");
+
+  // Serial.println("Token Value:");
+  // Serial.println(Ttoken);
   httpsClient.stop();
 
-//########################################################################################################################################
-// GET thermostat temperature from Tado
- Serial.println("GET thermostat temperature from Tado");
- Serial.println(host2);
+  //########################################################################################################################################
+  // GET thermostat temperature from Tado
+  Serial.println("GET thermostat temperature from Tado");
+  Serial.println(host2);
 
   httpsClient.setCACert(root_ca);
   httpsClient.setTimeout(15000); // 15 Seconds
@@ -312,13 +310,12 @@ actTemp = (event.temperature + DHTadjust);
   Serial.println(host2);
 
   String httpText2 = (String("GET /api/v2/homes/" + thome + "/zones/" + tzone + "/state HTTP/1.1") + "\r\n" +
-                     "Host: my.tado.com" + "\r\n" +
-                     "Authorization: Bearer " + Ttoken + "\r\n" +
-                     "Accept: */*" + "\r\n" +
-                     "Cache-Control: no-cache" + "\r\n" +
-                     "Host: my.tado.com" + "\r\n" +
-                     "Connection: close\r\n\r\n"
-                     );
+                      "Host: my.tado.com" + "\r\n" +
+                      "Authorization: Bearer " + Ttoken + "\r\n" +
+                      "Accept: */*" + "\r\n" +
+                      "Cache-Control: no-cache" + "\r\n" +
+                      "Host: my.tado.com" + "\r\n" +
+                      "Connection: close\r\n\r\n");
 
   httpsClient.print(httpText2);
 
@@ -336,86 +333,86 @@ actTemp = (event.temperature + DHTadjust);
       Serial.println("headers received");
       break;
     }
- 
   }
- 
+
   Serial.println("reply was:");
   Serial.println("==========");
 
   String linez2;
   String lineT2;
 
-    linez2 = httpsClient.readStringUntil('\n'); //Read Line by Line
-    lineT2 = httpsClient.readStringUntil('\n'); //Read Line by Line
+  linez2 = httpsClient.readStringUntil('\n'); //Read Line by Line
+  lineT2 = httpsClient.readStringUntil('\n'); //Read Line by Line
 
-Serial.println("\r\n lineT2");
-Serial.println(lineT2); 
-// Serial.println("\r\n");
+  Serial.println("\r\n lineT2");
+  Serial.println(lineT2);
+  // Serial.println("\r\n");
 
-httpsClient.stop();
-//###################################################################################################################
-// JSON split to get Tado Temp
-// See https://arduinojson.org/v6/assistant/     and    https://arduinojson.org/v6/api/json/deserializejson/ 
+  httpsClient.stop();
+  //###################################################################################################################
+  // JSON split to get Tado Temp
+  // See https://arduinojson.org/v6/assistant/     and    https://arduinojson.org/v6/api/json/deserializejson/
 
-Serial.println("JSON split to get Tado Temp");
+  Serial.println("JSON split to get Tado Temp");
 
-const size_t capacity = 4000; //3*JSON_OBJECT_SIZE(1) + 5*JSON_OBJECT_SIZE(2) + 4*JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(13) + 710;
-DynamicJsonDocument doc(capacity);
+  const size_t capacity = 4000; //3*JSON_OBJECT_SIZE(1) + 5*JSON_OBJECT_SIZE(2) + 4*JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(13) + 710;
+  DynamicJsonDocument doc(capacity);
 
-//const char* json = "{\"tadoMode\":\"HOME\",\"geolocationOverride\":false,\"geolocationOverrideDisableTime\":null,\"preparation\":null,\"setting\":{\"type\":\"HEATING\",\"power\":\"ON\",\"temperature\":{\"celsius\":21,\"fahrenheit\":69.8}},\"overlayType\":null,\"overlay\":null,\"openWindow\":null,\"nextScheduleChange\":{\"start\":\"2019-12-22T00:00:00Z\",\"setting\":{\"type\":\"HEATING\",\"power\":\"ON\",\"temperature\":{\"celsius\":18,\"fahrenheit\":64.4}}},\"nextTimeBlock\":{\"start\":\"2019-12-22T00:00:00.000Z\"},\"link\":{\"state\":\"ONLINE\"},\"activityDataPoints\":{\"heatingPower\":{\"type\":\"PERCENTAGE\",\"percentage\":0,\"timestamp\":\"2019-12-21T14:12:53.522Z\"}},\"sensorDataPoints\":{\"insideTemperature\":{\"celsius\":21.48,\"fahrenheit\":70.66,\"timestamp\":\"2019-12-21T14:22:48.761Z\",\"type\":\"TEMPERATURE\",\"precision\":{\"celsius\":1,\"fahrenheit\":1}},\"humidity\":{\"type\":\"PERCENTAGE\",\"percentage\":52.4,\"timestamp\":\"2019-12-21T14:22:48.761Z\"}}}";
+  //const char* json = "{\"tadoMode\":\"HOME\",\"geolocationOverride\":false,\"geolocationOverrideDisableTime\":null,\"preparation\":null,\"setting\":{\"type\":\"HEATING\",\"power\":\"ON\",\"temperature\":{\"celsius\":21,\"fahrenheit\":69.8}},\"overlayType\":null,\"overlay\":null,\"openWindow\":null,\"nextScheduleChange\":{\"start\":\"2019-12-22T00:00:00Z\",\"setting\":{\"type\":\"HEATING\",\"power\":\"ON\",\"temperature\":{\"celsius\":18,\"fahrenheit\":64.4}}},\"nextTimeBlock\":{\"start\":\"2019-12-22T00:00:00.000Z\"},\"link\":{\"state\":\"ONLINE\"},\"activityDataPoints\":{\"heatingPower\":{\"type\":\"PERCENTAGE\",\"percentage\":0,\"timestamp\":\"2019-12-21T14:12:53.522Z\"}},\"sensorDataPoints\":{\"insideTemperature\":{\"celsius\":21.48,\"fahrenheit\":70.66,\"timestamp\":\"2019-12-21T14:22:48.761Z\",\"type\":\"TEMPERATURE\",\"precision\":{\"celsius\":1,\"fahrenheit\":1}},\"humidity\":{\"type\":\"PERCENTAGE\",\"percentage\":52.4,\"timestamp\":\"2019-12-21T14:22:48.761Z\"}}}";
 
   // Deserialize the JSON document
   DeserializationError error = deserializeJson(doc, lineT2);
 
   // Test if parsing succeeds.
-  if (error) {
+  if (error)
+  {
     Serial.print(F("deserializeJson() failed: "));
     Serial.println(error.c_str());
     return;
   }
 
-// Fetch values
-//const char* tadoMode = doc["tadoMode"]; // "HOME"
-//bool geolocationOverride = doc["geolocationOverride"]; // false
+  // Fetch values
+  //const char* tadoMode = doc["tadoMode"]; // "HOME"
+  //bool geolocationOverride = doc["geolocationOverride"]; // false
 
-//JsonObject setting = doc["setting"];
-//const char* setting_type = setting["type"]; // "HEATING"
-//const char* setting_power = setting["power"]; // "ON"
+  //JsonObject setting = doc["setting"];
+  //const char* setting_type = setting["type"]; // "HEATING"
+  //const char* setting_power = setting["power"]; // "ON"
 
-//float setting_temperature_celsius = setting["temperature"]["celsius"]; // 21
-//float setting_temperature_fahrenheit = setting["temperature"]["fahrenheit"]; // 69.8
+  //float setting_temperature_celsius = setting["temperature"]["celsius"]; // 21
+  //float setting_temperature_fahrenheit = setting["temperature"]["fahrenheit"]; // 69.8
 
-// const char* nextScheduleChange_start = doc["nextScheduleChange"]["start"]; // "2019-12-22T00:00:00Z"
+  // const char* nextScheduleChange_start = doc["nextScheduleChange"]["start"]; // "2019-12-22T00:00:00Z"
 
-// JsonObject nextScheduleChange_setting = doc["nextScheduleChange"]["setting"];
-// const char* nextScheduleChange_setting_type = nextScheduleChange_setting["type"]; // "HEATING"
-// const char* nextScheduleChange_setting_power = nextScheduleChange_setting["power"]; // "ON"
+  // JsonObject nextScheduleChange_setting = doc["nextScheduleChange"]["setting"];
+  // const char* nextScheduleChange_setting_type = nextScheduleChange_setting["type"]; // "HEATING"
+  // const char* nextScheduleChange_setting_power = nextScheduleChange_setting["power"]; // "ON"
 
-// int nextScheduleChange_setting_temperature_celsius = nextScheduleChange_setting["temperature"]["celsius"]; // 18
-// float nextScheduleChange_setting_temperature_fahrenheit = nextScheduleChange_setting["temperature"]["fahrenheit"]; // 64.4
+  // int nextScheduleChange_setting_temperature_celsius = nextScheduleChange_setting["temperature"]["celsius"]; // 18
+  // float nextScheduleChange_setting_temperature_fahrenheit = nextScheduleChange_setting["temperature"]["fahrenheit"]; // 64.4
 
-// const char* nextTimeBlock_start = doc["nextTimeBlock"]["start"]; // "2019-12-22T00:00:00.000Z"
+  // const char* nextTimeBlock_start = doc["nextTimeBlock"]["start"]; // "2019-12-22T00:00:00.000Z"
 
-// const char* link_state = doc["link"]["state"]; // "ONLINE"
+  // const char* link_state = doc["link"]["state"]; // "ONLINE"
 
-// JsonObject activityDataPoints_heatingPower = doc["activityDataPoints"]["heatingPower"];
-// const char* activityDataPoints_heatingPower_type = activityDataPoints_heatingPower["type"]; // "PERCENTAGE"
-// int activityDataPoints_heatingPower_percentage = activityDataPoints_heatingPower["percentage"]; // 0
-// const char* activityDataPoints_heatingPower_timestamp = activityDataPoints_heatingPower["timestamp"]; // "2019-12-21T14:12:53.522Z"
+  // JsonObject activityDataPoints_heatingPower = doc["activityDataPoints"]["heatingPower"];
+  // const char* activityDataPoints_heatingPower_type = activityDataPoints_heatingPower["type"]; // "PERCENTAGE"
+  // int activityDataPoints_heatingPower_percentage = activityDataPoints_heatingPower["percentage"]; // 0
+  // const char* activityDataPoints_heatingPower_timestamp = activityDataPoints_heatingPower["timestamp"]; // "2019-12-21T14:12:53.522Z"
 
-JsonObject sensorDataPoints_insideTemperature = doc["sensorDataPoints"]["insideTemperature"];
-float sensorDataPoints_insideTemperature_celsius = sensorDataPoints_insideTemperature["celsius"]; // 21.48
-// float sensorDataPoints_insideTemperature_fahrenheit = sensorDataPoints_insideTemperature["fahrenheit"]; // 70.66
-// const char* sensorDataPoints_insideTemperature_timestamp = sensorDataPoints_insideTemperature["timestamp"]; // "2019-12-21T14:22:48.761Z"
-// const char* sensorDataPoints_insideTemperature_type = sensorDataPoints_insideTemperature["type"]; // "TEMPERATURE"
+  JsonObject sensorDataPoints_insideTemperature = doc["sensorDataPoints"]["insideTemperature"];
+  float sensorDataPoints_insideTemperature_celsius = sensorDataPoints_insideTemperature["celsius"]; // 21.48
+  // float sensorDataPoints_insideTemperature_fahrenheit = sensorDataPoints_insideTemperature["fahrenheit"]; // 70.66
+  // const char* sensorDataPoints_insideTemperature_timestamp = sensorDataPoints_insideTemperature["timestamp"]; // "2019-12-21T14:22:48.761Z"
+  // const char* sensorDataPoints_insideTemperature_type = sensorDataPoints_insideTemperature["type"]; // "TEMPERATURE"
 
-// int sensorDataPoints_insideTemperature_precision_celsius = sensorDataPoints_insideTemperature["precision"]["celsius"]; // 1
-// int sensorDataPoints_insideTemperature_precision_fahrenheit = sensorDataPoints_insideTemperature["precision"]["fahrenheit"]; // 1
+  // int sensorDataPoints_insideTemperature_precision_celsius = sensorDataPoints_insideTemperature["precision"]["celsius"]; // 1
+  // int sensorDataPoints_insideTemperature_precision_fahrenheit = sensorDataPoints_insideTemperature["precision"]["fahrenheit"]; // 1
 
-// JsonObject sensorDataPoints_humidity = doc["sensorDataPoints"]["humidity"];
-// const char* sensorDataPoints_humidity_type = sensorDataPoints_humidity["type"]; // "PERCENTAGE"
-// float sensorDataPoints_humidity_percentage = sensorDataPoints_humidity["percentage"]; // 52.4
-// const char* sensorDataPoints_humidity_timestamp = sensorDataPoints_humidity["timestamp"]; // "2019-12-21T14:22:48.761Z"
+  // JsonObject sensorDataPoints_humidity = doc["sensorDataPoints"]["humidity"];
+  // const char* sensorDataPoints_humidity_type = sensorDataPoints_humidity["type"]; // "PERCENTAGE"
+  // float sensorDataPoints_humidity_percentage = sensorDataPoints_humidity["percentage"]; // 52.4
+  // const char* sensorDataPoints_humidity_timestamp = sensorDataPoints_humidity["timestamp"]; // "2019-12-21T14:22:48.761Z"
 
   // Print values.
   // Serial.print("setting_temperature_celsius: - ");
@@ -423,12 +420,12 @@ float sensorDataPoints_insideTemperature_celsius = sensorDataPoints_insideTemper
   // Serial.print("sensorDataPoints_insideTemperature_celsius: ");
   // Serial.println(sensorDataPoints_insideTemperature_celsius);
 
-//###################################################################################################################
-// GET existing offset Value
+  //###################################################################################################################
+  // GET existing offset Value
 
-Serial.println(host2);
+  Serial.println(host2);
 
-  httpsClient.setCACert(root_ca); 
+  httpsClient.setCACert(root_ca);
   httpsClient.setTimeout(15000); // 15 Seconds
   delay(1000);
 
@@ -449,19 +446,16 @@ Serial.println(host2);
     Serial.println("Connected to web");
   }
 
-  
   Serial.print("requesting URL: ");
   Serial.println(host2);
 
-
   String httpText4 = (String("GET /api/v2/devices/" + tdevice + "/temperatureOffset HTTP/1.1") + "\r\n" +
-                     "Host: my.tado.com" + "\r\n" +
-                     "Authorization: Bearer " + Ttoken + "\r\n" +
-                     "Accept: */*" + "\r\n" +
-                     "Cache-Control: no-cache" + "\r\n" +
-                     "Host: my.tado.com" + "\r\n" +
-                     "Connection: close\r\n\r\n"
-                     );
+                      "Host: my.tado.com" + "\r\n" +
+                      "Authorization: Bearer " + Ttoken + "\r\n" +
+                      "Accept: */*" + "\r\n" +
+                      "Cache-Control: no-cache" + "\r\n" +
+                      "Host: my.tado.com" + "\r\n" +
+                      "Connection: close\r\n\r\n");
 
   httpsClient.print(httpText4);
 
@@ -479,87 +473,109 @@ Serial.println(host2);
       Serial.println("headers received");
       break;
     }
- 
   }
- 
+
   Serial.println("reply was:");
   Serial.println("==========");
 
   String linez4;
   String lineT4;
 
-    linez4 = httpsClient.readStringUntil('\n'); //Read Line by Line
-    lineT4 = httpsClient.readStringUntil('\n'); //Read Line by Line
+  linez4 = httpsClient.readStringUntil('\n'); //Read Line by Line
+  lineT4 = httpsClient.readStringUntil('\n'); //Read Line by Line
 
-Serial.println("\r\n lineT4");
-Serial.println(lineT4); 
-// Serial.println("\r\n");
-httpsClient.stop();
+  Serial.println("\r\n lineT4");
+  Serial.println(lineT4);
+  // Serial.println("\r\n");
+  httpsClient.stop();
 
-//################################################################################################################
-// JSON split to get Tado Offset
+  //################################################################################################################
+  // JSON split to get Tado Offset
 
-const size_t capacity2 = JSON_OBJECT_SIZE(2) + 30;
-DynamicJsonDocument doc2(capacity2);
+  const size_t capacity2 = JSON_OBJECT_SIZE(2) + 30;
+  DynamicJsonDocument doc2(capacity2);
 
-//const char* json = "{\"celsius\":-21.8,\"fahrenheit\":-35.24}";
-DeserializationError error2 = deserializeJson(doc2, lineT4);
+  //const char* json = "{\"celsius\":-21.8,\"fahrenheit\":-35.24}";
+  DeserializationError error2 = deserializeJson(doc2, lineT4);
 
   // Test if parsing succeeds.
-  if (error2) {
+  if (error2)
+  {
     Serial.print(F("deserializeJson() failed: "));
     Serial.println(error2.c_str());
     return;
   }
 
-txoffset = doc2["celsius"]; // -21.8
+  txoffset = doc2["celsius"]; // -21.8
 
-
-//###################################################################################################################
-// Calculate offset value required
+  //###################################################################################################################
+  // Calculate offset value required
   Serial.println("Calculate offset value required");
   Serial.print("Actual Temp: ");
   Serial.println(actTemp);
   Serial.print("Current Offset: ");
-  Serial.println(txoffset); 
+  Serial.println(txoffset);
   Serial.print("Tado reading inc. current offset: ");
-  Serial.println(sensorDataPoints_insideTemperature_celsius); 
+  Serial.println(sensorDataPoints_insideTemperature_celsius);
   // Serial.println("\r\n");
-tsensor = (sensorDataPoints_insideTemperature_celsius - txoffset);
+  tsensor = (sensorDataPoints_insideTemperature_celsius - txoffset);
   Serial.print("Tado true sensor reading: ");
-  Serial.println(tsensor); 
-toffset = actTemp - tsensor;
+  Serial.println(tsensor);
+  toffset = actTemp - tsensor;
   Serial.print("Offset calculated: ");
   Serial.println(toffset);
-sprintf(toffsetS,"%.2f",toffset);
+  sprintf(toffsetS, "%.2f", toffset);
   Serial.print("Offset to submit: ");
   Serial.println(toffsetS);
-//###################################################################################################################
-// Display Temperatures & offset
- String temperature;
- String radiator;
- String offset;
-temperature = "Temperature: " + String(actTemp)  + "C";  
-radiator =    "Radiator   : " + String(tsensor)  + "C";
-offset =      "Offset     : " + String(toffsetS) + "C";
+  if ((toffset - txoffset) > 0.5 || (toffset - txoffset) < -0.5)
+  {
+    Serial.println("Offset out of range - update");
+    poffset = 1;
+  }
+  else
+  {
+    poffset = 0;
+  }
+  Serial.print("poffset: ");
+  Serial.println(poffset);
 
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
-    tft.fillScreen(TFT_BLACK);
-    tft.setTextDatum(TL_DATUM); 
-    tft.setTextSize(2);
-    // tft.drawString(room,         tft.width() / 2, (tft.height() / 2) - 40 );
-    // tft.drawString(temperature,  tft.width() / 2, (tft.height() / 2) - 20 );
-    // tft.drawString(radiator,     tft.width() / 2, (tft.height() / 2)      );
-    // tft.drawString(offset,       tft.width() / 2, (tft.height() / 2) + 20 );
-    tft.drawString(room,         10,  20 );
-    tft.drawString(temperature,  10,  60 );
-    tft.drawString(radiator,     10,  80 );
-    tft.drawString(offset,       10, 100 );
 
-//###################################################################################################################
-// PUT Offset to Tado
-Serial.print("PUT Offset to Tado: ");
-Serial.println(host2);
+  //###################################################################################################################
+  // Display Temperatures & offset
+  String temperature;
+  String radiator;
+  String offset;
+  temperature = "Temperature: " + String(actTemp) + "C";
+  radiator = "Radiator   : " + String(tsensor) + "C";
+  if (poffset == 1)
+  {
+    offset = "Offset     : " + String(toffsetS) + "C";
+  }
+  else
+  {
+    offset = "Offset     : " + String(txoffset) + "C";
+  }
+
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextDatum(TL_DATUM); //Was MC
+  tft.setTextSize(2);
+  // tft.drawString(room,         tft.width() / 2, (tft.height() / 2) - 40 );
+  // tft.drawString(temperature,  tft.width() / 2, (tft.height() / 2) - 20 );
+  // tft.drawString(radiator,     tft.width() / 2, (tft.height() / 2)      );
+  // tft.drawString(offset,       tft.width() / 2, (tft.height() / 2) + 20 );
+  tft.drawString(room, 10, 20);
+  tft.drawString(temperature, 10, 60);
+  tft.drawString(radiator, 10, 80);
+  tft.drawString(offset, 10, 100);
+
+  //###################################################################################################################
+  // PUT Offset to Tado
+    if (poffset == 1)
+  {
+
+  Serial.print("PUT Offset to Tado: ");
+  Serial.println(host2);
   httpsClient.setCACert(root_ca);
   httpsClient.setTimeout(15000); // 15 Seconds
   delay(1000);
@@ -584,26 +600,23 @@ Serial.println(host2);
   Serial.print("requesting URL: ");
   Serial.println(host2);
 
-  String httpBody3 =  (String("{\r\n") +
-                        "            celsius: "  + toffsetS
-                        + "\r\n" +
-                        "}"
-  );
+  String httpBody3 = (String("{\r\n") +
+                      "            celsius: " + toffsetS + "\r\n" +
+                      "}");
   int httpBodyLength3 = httpBody3.length();
 
   // Serial.print("httpBody3 Length: ");
   // Serial.println(httpBodyLength3);
 
-String httpText3 = (String("PUT /api/v2/devices/" + tdevice + "/temperatureOffset HTTP/1.1") + "\r\n" +
-                     "Host: my.tado.com" + "\r\n" +
-                     "Authorization: Bearer " + Ttoken + "\r\n" +
-                     "Accept: */*" + "\r\n" +
-                     "Cache-Control: no-cache" + "\r\n" +
-                     "Host: my.tado.com" + "\r\n" +
-                     "Content-Length: " + httpBodyLength3 + "\r\n" +
-                     "Connection: keep-alive\r\n\r\n" +
-                    httpBody3
-                     );
+  String httpText3 = (String("PUT /api/v2/devices/" + tdevice + "/temperatureOffset HTTP/1.1") + "\r\n" +
+                      "Host: my.tado.com" + "\r\n" +
+                      "Authorization: Bearer " + Ttoken + "\r\n" +
+                      "Accept: */*" + "\r\n" +
+                      "Cache-Control: no-cache" + "\r\n" +
+                      "Host: my.tado.com" + "\r\n" +
+                      "Content-Length: " + httpBodyLength3 + "\r\n" +
+                      "Connection: keep-alive\r\n\r\n" +
+                      httpBody3);
 
   httpsClient.print(httpText3);
 
@@ -621,25 +634,28 @@ String httpText3 = (String("PUT /api/v2/devices/" + tdevice + "/temperatureOffse
       Serial.println("headers received");
       break;
     }
- 
   }
- 
+
   Serial.println("reply was:");
   Serial.println("==========");
 
   String linez3;
   String lineT3;
 
-    linez3 = httpsClient.readStringUntil('\n'); //Read Line by Line
-    lineT3 = httpsClient.readStringUntil('\n'); //Read Line by Line
+  linez3 = httpsClient.readStringUntil('\n'); //Read Line by Line
+  lineT3 = httpsClient.readStringUntil('\n'); //Read Line by Line
 
+  Serial.print("\r\n lineT3: ");
+  Serial.println(lineT3);
+  // Serial.println("\r\n");
 
-Serial.print("\r\n lineT3: ");
-Serial.println(lineT3); 
-// Serial.println("\r\n");
-
-httpsClient.stop();
-//###################################################################################################################
+  httpsClient.stop();
+  }
+  else 
+  {
+   Serial.println("Offset put skipped"); 
+  }
+  //###################################################################################################################
   // Serial.println();
   Serial.println("==========");
   Serial.println("closing connection");
