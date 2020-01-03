@@ -1,6 +1,9 @@
 /*
 Written by Jonathan Riches, inspired by many. Apologies for anyone's code portions I used and haven't credited!
 This code isn't great, but it does work...
+Original thread:- 
+https://community.tado.com/en-gb/discussion/2800/trvs-horribly-inaccurate-any-suggestions?
+
 References: -
 https://circuits4you.com 
 https://arduinojson.org/v6/api/json/deserializejson/
